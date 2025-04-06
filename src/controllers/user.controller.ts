@@ -103,7 +103,7 @@ const verifyEmail = async (req: Request, res: Response) => {
 
 	const { email } = decodedToken as { email: string };
 
-	const user = await User.findOne({ email, verificationId });
+	const user = await User.findOne({ email, verificationId }); // extra load
 
 	if (!user) {
 		return res.status(404).json(errorResponse("User not found"));
@@ -191,4 +191,17 @@ const deleteAccount = async (req: Request, res: Response) => {
 		.json(successResponse("User deleted successfully"));
 };
 
-export { registerUser, verifyEmail, login, logout, deleteAccount };
+const getCurrentUser = async (req: Request, res: Response) => {
+	const userId = req.user._id;
+	try {
+		const user = await User.findById(userId);
+		return res
+			.status(200)
+			.json(successResponse("User Fetched successfully", user));
+	} catch (err) {
+		const error = err as Error
+		return res.status(200).json(errorResponse(error.message));
+	}
+};
+
+export { registerUser, verifyEmail, login, logout, deleteAccount, getCurrentUser };

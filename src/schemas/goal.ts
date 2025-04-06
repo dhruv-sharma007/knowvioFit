@@ -12,7 +12,7 @@ export const goalSchema = z.object({
 		EGoalType.StrengthTraining,
 		EGoalType.WeightLoss,
 	]),
-    startDate: z.date(),
-    endDate: z.date(),
-    description: z.string().length(200).optional(),
+    startDate: z.coerce.date(),
+    endDate: z.coerce.date(),
+    description: z.string().max(200).optional(),
 });

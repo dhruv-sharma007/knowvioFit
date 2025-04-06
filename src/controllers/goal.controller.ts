@@ -5,6 +5,15 @@ import { goalSchema } from "../schemas/goal";
 
 const createGoal = async (req: Request, res: Response) => {
 	const result = goalSchema.safeParse(req.body);
+	const userId = req.user._id;
+	const goalExist = Goal.findOne({ userId });
+	if (!goalExist) {
+		return res
+			.status(400)
+			.json(
+				errorResponse("Goal already exist"),
+			);
+	}
 	if (!result.success) {
 		return res
 			.status(400)
@@ -14,7 +23,6 @@ const createGoal = async (req: Request, res: Response) => {
 	}
 	const { targetValue, progress, goalType, startDate, endDate, description } =
 		result.data;
-	const userId = req.user._id;
 	const goal = await Goal.create({
 		userId,
 		targetValue,
@@ -31,9 +39,7 @@ const getGoal = async (req: Request, res: Response) => {
 
 	const goal = await Goal.findOne({ userId });
 	if (!goal) {
-		return res
-			.status(404)
-			.json(errorResponse("Goal not found" ));
+		return res.status(404).json(errorResponse("Goal not found"));
 	}
 
 	return res
@@ -43,15 +49,13 @@ const getGoal = async (req: Request, res: Response) => {
 
 const completeGoal = async (req: Request, res: Response) => {
 	const userId = req.user._id;
-	const { goalId } = req.params;
+	const { bool } = req.body;
 
-	const goal = await Goal.findOne({ userId, _id: goalId });
-	if(!goal) {
-		return res
-			.status(404)
-			.json(errorResponse("Goal not found"));
+	const goal = await Goal.findOne({ userId });
+	if (!goal) {
+		return res.status(404).json(errorResponse("Goal not found"));
 	}
-	goal.completed = true;
+	goal.completed = bool;
 	await goal.save();
 	return res
 		.status(200)

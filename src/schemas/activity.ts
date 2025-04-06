@@ -17,10 +17,10 @@ export const activitySchema = z.object({
 		EActivityType.Yoga,
 		EActivityType.Zumba,
 	]),
-	caloriesBurned: z.number().min(1).optional(),
+	// caloriesBurned: z.number().min(1).optional(),
     distance: z.number().min(10).optional(),
     weightUsed: z.number().optional(), // in meters
     reps: z.number().min(1).optional(),
     sets: z.number().min(1).optional(),
-	time: z.number().min(1).optional(), // in minutes
+	time: z.number().min(1), // in minutes
 });

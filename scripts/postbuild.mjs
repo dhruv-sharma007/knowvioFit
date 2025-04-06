@@ -17,3 +17,9 @@ async function fixImports() {
 }
 
 fixImports().catch(console.error);
+
+
+// this script will add .js in in dist imports after building ts code 
+
+// example: import { something } from './some-file'
+// will be changed to import { something } from './some-file.js'

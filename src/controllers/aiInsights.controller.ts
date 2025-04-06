@@ -1,29 +1,27 @@
 import type { Request, Response } from "express";
-import { User } from "../models/user.model";
 import { AiInsights } from "../models/aiInsights.model";
-import { getCache, setCache } from "../cache/cache";
+import { delCache, getCache, setCache } from "../cache/cache";
 import { errorResponse, successResponse } from "../utils/Response";
 import Goal from "../models/goal.model";
-import { getMotivationalMessage } from "../helpers/ai";
+import { getAiData } from "../helpers/ai";
 import { Activity } from "../models/activity.model";
 import { Profile } from "../models/profile.model";
 
 const getAiInsights = async (req: Request, res: Response) => {
 	const userId = req.user._id;
-
 	const key = `${userId}:ai`;
 
-	const getAiCache = String(getCache(key));
+	const rawCache = getCache(key);
 
-	if (getAiCache) {
-		return res
-			.status(200)
-			.json(
-				successResponse(
-					"Activities fetched from cache",
-					JSON.parse(getAiCache),
-				),
-			);
+	if (rawCache) {
+		try {
+			const parsedCache = JSON.parse(String(rawCache));
+			return res
+				.status(200)
+				.json(successResponse("Activities fetched from cache", parsedCache));
+		} catch (err) {
+			console.error("Cache JSON parse error:", err);
+		}
 	}
 
 	const aiData = await AiInsights.findOne({ userId });
@@ -35,8 +33,7 @@ const getAiInsights = async (req: Request, res: Response) => {
 			.json(successResponse("AI Insights data fetched successfully", aiData));
 	}
 
-	// Main ai functionality
-
+	// Main AI functionality
 	const goal = await Goal.findOne({ userId });
 	const activity = await Activity.find({ userId });
 	const profile = await Profile.findOne({ userId });
@@ -48,41 +45,55 @@ const getAiInsights = async (req: Request, res: Response) => {
 			.status(404)
 			.json(errorResponse("Please first create an activity"));
 	}
-
 	if (!goal) {
 		return res.status(404).json(errorResponse("Please first create a goal"));
 	}
 
-	const motivationalMessage = await getMotivationalMessage(
-		JSON.stringify(goal),
-	);
-	const progressiveAnalysis = await getMotivationalMessage(
-		`\n user's goal: ${JSON.stringify(goal)}\n user's activity: ${JSON.stringify(
-			activity,
-		)}`,
-	);
-	const workOutSuggestion = await getMotivationalMessage(
-		`\n user's goal: ${JSON.stringify(goal)}\n user's profile: ${JSON.stringify(
-			profile,
-		)}`,
-	);
-	if (!motivationalMessage || !progressiveAnalysis || !workOutSuggestion) {
+	const prompt = `${goal}\n${activity}\n{profile}`;
+	const response = await getAiData(String(prompt));
+
+	const data = String(response);
+	console.log(data);
+
+	if (response) {
+		const cleaned = data
+			.replace(/```json\s*/g, "")
+			.replace(/```/g, "")
+			.trim();
+
+		const { workOutSuggestion, progressiveAnalysis, motivationalMessage } =
+			JSON.parse(cleaned);
+
+		const aiInsights = await AiInsights.create({
+			userId,
+			workOutSuggestion,
+			progressiveAnalysis,
+			motivationalMessage,
+		});
+		setCache(key, JSON.stringify(aiInsights));
+
 		return res
-			.status(500)
-			.json(errorResponse("Error generating AI insights, please try again"));
+			.status(200)
+			.json(
+				successResponse("AI Insights data fetched successfully", aiInsights),
+			);
 	}
 
-	const aiInsights = await AiInsights.create({
-		userId,
-		workOutSuggestion,
-		progressiveAnalysis,
-		motivationalMessage,
-	});
-	setCache(key, JSON.stringify(aiInsights));
-
 	return res
-		.status(200)
-		.json(successResponse("AI Insights data fetched successfully", aiInsights));
+		.status(500)
+		.json(errorResponse("Something went wrong while fetching data from ai"));
 };
 
-export { getAiInsights };
+const deleteAiInsights = async (req: Request, res: Response) => {
+	const userId = req.user._id;
+	const key = `${userId}:ai`;
+
+	const aiInsight = await AiInsights.findOneAndDelete({ userId });
+	delCache(key);
+	if (!aiInsight) {
+		return res.status(404).json(errorResponse("No ai data found"));
+	}
+	return res.status(200).json(successResponse("Ai data Deleted"));
+};
+
+export { getAiInsights, deleteAiInsights };

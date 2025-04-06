@@ -52,16 +52,17 @@ const getActivities = async (req: Request, res: Response) => {
 	const userId = req.user._id;
 
 	const cacheKey = `activities_${userId}_${page}_${limit}`;
-	const cachedActivities: string = String(getCache(cacheKey));
-	if (cachedActivities) {
-		return res
-			.status(200)
-			.json(
-				successResponse(
-					"Activities fetched from cache",
-					JSON.parse(cachedActivities),
-				),
+	const rawCache = getCache(cacheKey);
+
+	if (rawCache) {
+		try {
+			const cachedActivities = String(rawCache);
+			return res.status(200).json(
+				successResponse("Activities fetched from cache", JSON.parse(cachedActivities))
 			);
+		} catch (error) {
+			console.error("Failed to parse cached data:", error);
+		}
 	}
 
 	const activities = await Activity.find({ userId })
@@ -69,11 +70,12 @@ const getActivities = async (req: Request, res: Response) => {
 		.limit(limit)
 		.sort({ createdAt: -1 });
 
-	if (!activities) {
+	if (!activities || activities.length === 0) {
 		return res
 			.status(404)
 			.json(errorResponse("No activities found for this user"));
 	}
+
 	const totalActivities = await Activity.countDocuments({ userId });
 	const totalPages = Math.ceil(totalActivities / limit);
 	const response = {
@@ -83,8 +85,11 @@ const getActivities = async (req: Request, res: Response) => {
 		totalPages,
 		totalActivities,
 	};
+
 	setCache(cacheKey, JSON.stringify(response));
+
 	return res.status(200).json(successResponse("Activities fetched", response));
 };
+
 
 export { createActivity, getActivities };
