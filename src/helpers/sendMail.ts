@@ -21,7 +21,7 @@ export const sendMail = async (
 		const info = await transporter.sendMail({
 			from: `"KNOWVIOFIT" <${conf.mailId}>`,
 			to: mailId,
-			subject: "OTP Verification - KNOWVIOFIT",
+			subject: "Verification - KNOWVIOFIT",
 			text: `Hi ${name}, your Verificatin link is here. It's valid for 3 minutes.`,
 			html: template,
 		});

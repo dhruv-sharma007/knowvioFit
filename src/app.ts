@@ -8,6 +8,7 @@ import morganMiddleware from "./middleware/morganMiddleware";
 // import xss from "xss-clean";
 import { healthCheck, hello, notFound } from "./controllers/server.controller";
 import userRoute from "./routes/user.route"
+import cors from "cors"
 
 const app = express();
 
@@ -18,7 +19,12 @@ const limiter = rateLimit({
 });
 
 // MiddleWares
-
+app.use(cors({
+	  origin: "http://localhost:5173",
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+}))
 app.use(cookieParser(conf.cookierSecret));
 app.use(helmet());
 app.use(hpp());

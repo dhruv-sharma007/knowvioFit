@@ -56,7 +56,7 @@ const registerUser = async (req: Request, res: Response) => {
 		const sendEmail = await sendMail(
 			name,
 			email,
-			`${conf.backendUrl}/api/v1/user/verifyemail/${verificationId}`,
+			`${conf.backendUrl}/${verificationId}`,
 		);
 		if (sendEmail?.rejected.length) {
 			return res.status(500).json(new AppError("Email id is not valid", 400));
@@ -65,11 +65,7 @@ const registerUser = async (req: Request, res: Response) => {
 		return res
 			.status(201)
 			.cookie("verificationToken", verificationToken)
-			.json(
-				successResponse(
-					"User created successfully please check your email or spam box to verify",
-				),
-			);
+			.json(successResponse("Please check your email or spam box to verify"));
 	} catch (err) {
 		const error = err as Error;
 		logger.error(error.message);
@@ -79,6 +75,7 @@ const registerUser = async (req: Request, res: Response) => {
 
 const verifyEmail = async (req: Request, res: Response) => {
 	const result = verificationShema.safeParse(req.params);
+	console.log(req.params);
 	if (!result.success) {
 		res
 			.status(400)
@@ -132,8 +129,11 @@ const login = async (req: Request, res: Response) => {
 			);
 	}
 	const { email, password } = result.data;
+	console.log(`email: ${email}, password: ${password}`);
 
-	const user = await User.findOne({ email });
+	const user = await User.findOne({ email }).select(
+		" -verificationToken -verificationId ",
+	);
 
 	if (!user) {
 		return res.status(404).json(errorResponse("User not found"));
@@ -162,7 +162,7 @@ const login = async (req: Request, res: Response) => {
 	res
 		.status(200)
 		.cookie("accessToken", accessToken, options)
-		.json(successResponse("user successfully logged in"));
+		.json(successResponse("Successfully logged in", user));
 };
 
 const logout = async (req: Request, res: Response): Promise<void> => {
@@ -195,13 +195,28 @@ const getCurrentUser = async (req: Request, res: Response) => {
 	const userId = req.user._id;
 	try {
 		const user = await User.findById(userId);
+		if (!user) {
+			return res.status(403).json(successResponse("User Not Found"));
+		}
 		return res
 			.status(200)
 			.json(successResponse("User Fetched successfully", user));
 	} catch (err) {
-		const error = err as Error
+		const error = err as Error;
 		return res.status(200).json(errorResponse(error.message));
 	}
 };
 
-export { registerUser, verifyEmail, login, logout, deleteAccount, getCurrentUser };
+const me = async (_: Request, res: Response) => {
+	res.status(200).json(successResponse("User is logged in"));
+};
+
+export {
+	registerUser,
+	verifyEmail,
+	login,
+	logout,
+	deleteAccount,
+	getCurrentUser,
+	me
+};

@@ -10,8 +10,8 @@ export const conf = {
 	cookierSecret: String(process.env.COOKIE_SECRET),
 	mailId: String(process.env.MAIL_ID),
 	mailPass: String(process.env.MAIL_PASS),
-	backendUrl: String(process.env.BACKEND_URI),
+	backendUrl: String(process.env.URL_FOR_MAGIC_LINK),
 	verificationSecret: String(process.env.VERIFY_SECRET),
 	accessTokenSecret: String(process.env.ACCESS_SECRET),
-	geminiKey: String(process.env.URL_FOR_MAGIC_LINK),
+	geminiKey: String(process.env.GEMINI_API_KEY),
 };
